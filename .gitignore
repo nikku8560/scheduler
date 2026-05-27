@@ -1,0 +1,17 @@
+# 認証情報（絶対にGitHubに上げない）
+service_account.json
+token.json
+credentials.json.json
+*.json
+
+# Streamlit secrets（ローカル用）
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# その他
+.DS_Store
