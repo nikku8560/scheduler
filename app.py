@@ -673,7 +673,7 @@ def check_password():
     st.title("📅 委員長面談スケジューラー")
     pw = st.text_input("パスワードを入力してください", type="password")
     if st.button("ログイン", use_container_width=True):
-        correct = st.secrets.get("password", "komei1117")
+        correct = st.secrets["password"]
         if pw == correct:
             st.session_state.authenticated = True
             st.rerun()
