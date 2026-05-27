@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 # ── 設定 ──────────────────────────────────────────────────
-SHEET_ID    = "1ZcD0rOlRUsq-SOgsAzVgufZ7OsqITGNtbMnuL0QtJc0"
+SHEET_ID    = st.secrets.get("sheet_id", "1ZcD0rOlRUsq-SOgsAzVgufZ7OsqITGNtbMnuL0QtJc0")
 SHEET_MEET  = "Sheet1"
 SHEET_MEIBO = "OUTPUT (43)"
 SCOPES      = ["https://www.googleapis.com/auth/spreadsheets"]
