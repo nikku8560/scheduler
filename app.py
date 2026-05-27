@@ -666,6 +666,22 @@ def show_reschedule():
 
 
 # ── エントリーポイント ─────────────────────────────────────
+def check_password():
+    """パスワードチェック。通過済みならTrueを返す"""
+    if st.session_state.get("authenticated"):
+        return True
+    st.title("📅 委員長面談スケジューラー")
+    pw = st.text_input("パスワードを入力してください", type="password")
+    if st.button("ログイン", use_container_width=True):
+        correct = st.secrets.get("password", "komei1117")
+        if pw == correct:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("パスワードが違います")
+    return False
+
+
 def main():
     st.set_page_config(
         page_title="委員長面談スケジューラー",
@@ -673,6 +689,10 @@ def main():
         layout="centered",
         initial_sidebar_state="collapsed",
     )
+
+    if not check_password():
+        return
+
     st.title("📅 委員長面談スケジューラー")
 
     init_session()
