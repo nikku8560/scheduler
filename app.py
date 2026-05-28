@@ -272,8 +272,7 @@ def init_session():
         "ts": None, "te": None,
         "slots": None,
         "n_pref": 0, "n_party": 0,
-        "filter_pref": None, "filter_dept": None,
-        "age_min": None, "age_max": None,
+        "slot_filters": None,
         "assignments": None,
         "marks_written": False,
         "header": None,
@@ -413,41 +412,83 @@ def show_counts_input():
     with col_next:
         disabled = (total == 0 or total > len(slots))
         if st.button("次へ →", use_container_width=True, type="primary", disabled=disabled):
-            st.session_state.update(n_pref=n_pref, n_party=n_party, step="filters")
+            st.session_state.update(n_pref=n_pref, n_party=n_party, step="slot_filters")
             st.rerun()
 
 
-def show_filters_input():
-    """③ 絞り込み条件"""
-    st.subheader("③ 絞り込み条件（任意）")
-    st.caption("都道府県・部局・年齢を指定できます。不要ならそのまま「次へ」")
+def show_slot_filters_input():
+    """③ コマごとの絞り込み条件"""
+    st.subheader("③ 各コマの条件指定（任意）")
+    st.caption("コマごとに都道府県・年齢を指定できます。不要は空白／「指定なし」のまま「次へ」")
 
-    with st.form("filter_form"):
-        filter_input = st.text_input(
-            "絞り込み条件",
-            placeholder="例）北海道　/　選挙部　/　40代　/　北海道の35〜45歳"
-        )
+    n_pref  = st.session_state.n_pref
+    n_party = st.session_state.n_party
+
+    with st.form("slot_filter_form"):
+
+        if n_pref > 0:
+            st.markdown("**🏛 都道府県本部**")
+            for i in range(n_pref):
+                st.markdown(f"枠 {i + 1}")
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.selectbox(
+                        "都道府県",
+                        ["指定なし"] + PREFECTURES,
+                        key=f"sf_pref_{i}",
+                    )
+                with c2:
+                    st.text_input(
+                        "年齢条件",
+                        placeholder="例）30代 / 35〜45歳",
+                        key=f"sf_age_pref_{i}",
+                    )
+
+        if n_party > 0:
+            st.markdown("**🏢 党本部**")
+            for i in range(n_party):
+                st.markdown(f"枠 {i + 1}")
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.text_input(
+                        "部局（任意）",
+                        placeholder="例）選挙部",
+                        key=f"sf_dept_{i}",
+                    )
+                with c2:
+                    st.text_input(
+                        "年齢条件",
+                        placeholder="例）40代 / 35〜45歳",
+                        key=f"sf_age_party_{i}",
+                    )
+
         submitted = st.form_submit_button("次へ →", use_container_width=True, type="primary")
 
     if submitted:
-        if filter_input.strip():
-            fp, fd, amin, amax = parse_filters(filter_input)
-            parts = []
-            if fp:   parts.append(f"都道府県：{fp}")
-            if fd:   parts.append(f"部局：{fd}")
-            if amin and amax: parts.append(f"年齢：{amin}〜{amax}歳")
-            elif amin:        parts.append(f"年齢：{amin}歳以上")
-            elif amax:        parts.append(f"年齢：{amax}歳以下")
-            if parts:
-                st.info("条件：" + "　/　".join(parts))
-        else:
-            fp = fd = amin = amax = None
+        slot_filters = []
+        for i in range(n_pref):
+            pref_val = st.session_state.get(f"sf_pref_{i}", "指定なし")
+            age_str  = st.session_state.get(f"sf_age_pref_{i}", "").strip()
+            _, _, amin, amax = parse_filters(age_str) if age_str else (None, None, None, None)
+            slot_filters.append({
+                "org_type":   "pref",
+                "filter_val": pref_val if pref_val != "指定なし" else None,
+                "age_min": amin,
+                "age_max": amax,
+            })
+        for i in range(n_party):
+            dept_val = st.session_state.get(f"sf_dept_{i}", "").strip()
+            age_str  = st.session_state.get(f"sf_age_party_{i}", "").strip()
+            _, _, amin, amax = parse_filters(age_str) if age_str else (None, None, None, None)
+            slot_filters.append({
+                "org_type":   "party",
+                "filter_val": dept_val if dept_val else None,
+                "age_min": amin,
+                "age_max": amax,
+            })
 
-        st.session_state.update(
-            filter_pref=fp, filter_dept=fd, age_min=amin, age_max=amax
-        )
-
-        assignments = do_select()
+        st.session_state.slot_filters = slot_filters
+        assignments = do_select_per_slot()
         if assignments is not None:
             st.session_state.update(assignments=assignments, step="confirm")
             st.rerun()
@@ -459,44 +500,63 @@ def show_filters_input():
             st.rerun()
 
 
-def do_select():
-    """人選を実行。成功したら assignments を返す、失敗したら None"""
-    unmet  = st.session_state.unmet
-    meibo  = st.session_state.meibo
-    slots  = st.session_state.slots
-    n_pref = st.session_state.n_pref
-    n_party= st.session_state.n_party
-    fp     = st.session_state.filter_pref
-    fd     = st.session_state.filter_dept
-    amin   = st.session_state.age_min
-    amax   = st.session_state.age_max
+def do_select_per_slot():
+    """コマごとの条件で人選を実行。成功したら assignments を返す、失敗したら None"""
+    unmet        = st.session_state.unmet
+    meibo        = st.session_state.meibo
+    slots        = st.session_state.slots
+    slot_filters = st.session_state.slot_filters
 
-    pref_pool, party_pool = [], []
-    for person in unmet:
-        name = person["name"]
-        info = meibo.get(name, {"org": "", "age": None, "org_type": "党本部"})
-        if amin is not None and info["age"] is not None and info["age"] < amin: continue
-        if amax is not None and info["age"] is not None and info["age"] > amax: continue
-        if info["org_type"] == "都道府県本部":
-            if fp and fp not in info["org"]: continue
-            pref_pool.append(person)
-        else:
-            if fd and fd not in info["org"]: continue
-            party_pool.append(person)
+    used_names  = set()
+    assignments = []
+    ok          = True
 
-    ok = True
-    if n_pref > len(pref_pool):
-        st.error(f"都道府県本部の条件を満たす未面談者が{len(pref_pool)}名しかいません（{n_pref}名指定）")
-        ok = False
-    if n_party > len(party_pool):
-        st.error(f"党本部の条件を満たす未面談者が{len(party_pool)}名しかいません（{n_party}名指定）")
-        ok = False
-    if not ok:
-        return None
+    for i, sf in enumerate(slot_filters):
+        org_type   = sf["org_type"]   # "pref" or "party"
+        filter_val = sf["filter_val"]
+        amin, amax = sf["age_min"], sf["age_max"]
+        type_label = "都道府県本部" if org_type == "pref" else "党本部"
 
-    selected = random.sample(pref_pool, n_pref) + random.sample(party_pool, n_party)
-    random.shuffle(selected)
-    return list(zip(slots[:len(selected)], selected))
+        pool = []
+        for person in unmet:
+            if person["name"] in used_names:
+                continue
+            info = meibo.get(person["name"], {"org": "", "age": None, "org_type": "党本部"})
+            # 年齢フィルター
+            if amin is not None and info["age"] is not None and info["age"] < amin:
+                continue
+            if amax is not None and info["age"] is not None and info["age"] > amax:
+                continue
+            # 組織種別
+            if org_type == "pref" and info["org_type"] != "都道府県本部":
+                continue
+            if org_type == "party" and info["org_type"] != "党本部":
+                continue
+            # 都道府県 / 部局フィルター
+            if filter_val and filter_val not in info["org"]:
+                continue
+            pool.append(person)
+
+        if not pool:
+            conds = []
+            if filter_val:
+                conds.append(filter_val)
+            if amin and amax:
+                conds.append(f"{amin}〜{amax}歳")
+            elif amin:
+                conds.append(f"{amin}歳以上")
+            elif amax:
+                conds.append(f"{amax}歳以下")
+            cond_str = "・".join(conds) if conds else "条件なし"
+            st.error(f"枠{i + 1}（{type_label}、{cond_str}）に該当する未面談者がいません")
+            ok = False
+            continue
+
+        chosen = random.choice(pool)
+        used_names.add(chosen["name"])
+        assignments.append((slots[i], chosen))
+
+    return assignments if ok else None
 
 
 def show_confirm():
@@ -764,8 +824,8 @@ def main():
         show_time_input()
     elif step == "counts":
         show_counts_input()
-    elif step == "filters":
-        show_filters_input()
+    elif step == "slot_filters":
+        show_slot_filters_input()
     elif step == "confirm":
         show_confirm()
     elif step == "reorder":
