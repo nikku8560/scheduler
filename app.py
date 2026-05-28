@@ -536,7 +536,7 @@ def show_confirm():
     _show_schedule_table(assignments, meibo, date_label)
 
     st.divider()
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         label = "✅ 確定（テスト）" if st.session_state.mode == "test" else "✅ 確定（〇記入）"
         if st.button(label, use_container_width=True, type="primary"):
@@ -547,10 +547,14 @@ def show_confirm():
             st.session_state.marks_written = True
             st.rerun()
     with col2:
-        if st.button("🔄 人を入れ替え", use_container_width=True):
-            st.session_state.step = "swap"
+        if st.button("🔀 順番入替", use_container_width=True):
+            st.session_state.step = "reorder"
             st.rerun()
     with col3:
+        if st.button("🔄 人を入替", use_container_width=True):
+            st.session_state.step = "swap"
+            st.rerun()
+    with col4:
         if st.button("❌ キャンセル", use_container_width=True):
             st.session_state.step = "mode"
             st.rerun()
@@ -569,6 +573,51 @@ def _show_schedule_table(assignments, meibo, date_label):
             "年齢":  f"{info['age']}歳" if info["age"] else "－",
         })
     st.dataframe(rows, hide_index=True, use_container_width=True)
+
+
+def show_reorder():
+    """順番の入れ替え画面"""
+    st.subheader("🔀 順番の入れ替え")
+    st.caption("各コマに誰を割り当てるか選んでください")
+
+    assignments = st.session_state.assignments
+    meibo       = st.session_state.meibo
+    names       = [p["name"] for _, p in assignments]
+
+    new_order = []
+    used = []
+    valid = True
+
+    for i, (slot, _) in enumerate(assignments):
+        opts = [f"{p['name']}（{meibo.get(p['name'],{}).get('org','')}）" for _, p in assignments]
+        default_idx = i
+        sel = st.selectbox(
+            f"**{slot['start']}〜{slot['end']}**",
+            opts,
+            index=default_idx,
+            key=f"reorder_{i}"
+        )
+        selected_name = assignments[opts.index(sel)][1]
+        new_order.append(selected_name)
+        used.append(selected_name["name"])
+
+    # 重複チェック
+    if len(set(used)) < len(used):
+        st.warning("⚠️ 同じ人が複数のコマに選ばれています。それぞれ別の人を選んでください。")
+        valid = False
+
+    st.divider()
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("✅ この順番で確定", use_container_width=True, type="primary", disabled=not valid):
+            slots = [s for s, _ in assignments]
+            new_assignments = list(zip(slots, new_order))
+            st.session_state.update(assignments=new_assignments, step="confirm")
+            st.rerun()
+    with col2:
+        if st.button("← 戻る", use_container_width=True):
+            st.session_state.step = "confirm"
+            st.rerun()
 
 
 def show_swap():
@@ -716,6 +765,8 @@ def main():
         show_filters_input()
     elif step == "confirm":
         show_confirm()
+    elif step == "reorder":
+        show_reorder()
     elif step == "swap":
         show_swap()
     elif step == "reschedule":
