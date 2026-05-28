@@ -181,11 +181,19 @@ def load_data():
         if not name: continue
         birth_str = row[1].strip() if len(row) > 1 else ""
         org       = row[2].strip() if len(row) > 2 else ""  # C列（index2）
+        # 年齢計算（YYYY/MM/DD と YYYY/M 両対応）
         age = None
         if birth_str:
             try:
-                bd  = datetime.strptime(birth_str, "%Y/%m/%d").date()
-                age = today.year - bd.year - ((today.month, today.day) < (bd.month, bd.day))
+                parts = birth_str.strip().split('/')
+                if len(parts) >= 3:
+                    # YYYY/MM/DD
+                    bd  = date(int(parts[0]), int(parts[1]), int(parts[2]))
+                    age = today.year - bd.year - ((today.month, today.day) < (bd.month, bd.day))
+                elif len(parts) == 2:
+                    # YYYY/M（日なし）→ 月で比較
+                    by, bm = int(parts[0]), int(parts[1])
+                    age = today.year - by - (today.month < bm)
             except Exception:
                 pass
         org_type = "都道府県本部" if is_pref_honbu(org) else "党本部"
