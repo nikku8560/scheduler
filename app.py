@@ -576,41 +576,44 @@ def _show_schedule_table(assignments, meibo, date_label):
 
 
 def show_reorder():
-    """順番の入れ替え画面"""
+    """順番の入れ替え画面（ドラッグ&ドロップ）"""
+    from streamlit_sortables import sort_items
+
     st.subheader("🔀 順番の入れ替え")
-    st.caption("各コマに誰を割り当てるか選んでください")
+    st.caption("ドラッグして順番を入れ替えてください")
 
     assignments = st.session_state.assignments
     meibo       = st.session_state.meibo
-    names       = [p["name"] for _, p in assignments]
 
-    new_order = []
-    used = []
-    valid = True
+    # 表示ラベルを作成（氏名をキーとして埋め込む）
+    labels = [
+        f"{p['name']}　{meibo.get(p['name'],{}).get('org','')}　{meibo.get(p['name'],{}).get('age','')}歳"
+        for _, p in assignments
+    ]
 
-    for i, (slot, _) in enumerate(assignments):
-        opts = [f"{p['name']}（{meibo.get(p['name'],{}).get('org','')}）" for _, p in assignments]
-        default_idx = i
-        sel = st.selectbox(
-            f"**{slot['start']}〜{slot['end']}**",
-            opts,
-            index=default_idx,
-            key=f"reorder_{i}"
-        )
-        selected_name = assignments[opts.index(sel)][1]
-        new_order.append(selected_name)
-        used.append(selected_name["name"])
+    # ドラッグ&ドロップUI
+    sorted_labels = sort_items(labels, direction="vertical")
 
-    # 重複チェック
-    if len(set(used)) < len(used):
-        st.warning("⚠️ 同じ人が複数のコマに選ばれています。それぞれ別の人を選んでください。")
-        valid = False
+    # 並べ替え結果をassignmentsに反映
+    slots      = [s for s, _ in assignments]
+    name_to_person = {p["name"]: p for _, p in assignments}
+    new_order  = []
+    for lbl in sorted_labels:
+        name = lbl.split("　")[0]
+        if name in name_to_person:
+            new_order.append(name_to_person[name])
+
+    # プレビュー表示
+    st.divider()
+    st.caption("並べ替え後のプレビュー：")
+    for slot, person in zip(slots, new_order):
+        info = meibo.get(person["name"], {"org": ""})
+        st.write(f"**{slot['start']}〜{slot['end']}**　{person['name']}（{info['org']}）")
 
     st.divider()
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("✅ この順番で確定", use_container_width=True, type="primary", disabled=not valid):
-            slots = [s for s, _ in assignments]
+        if st.button("✅ この順番で確定", use_container_width=True, type="primary"):
             new_assignments = list(zip(slots, new_order))
             st.session_state.update(assignments=new_assignments, step="confirm")
             st.rerun()
