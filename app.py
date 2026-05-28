@@ -171,7 +171,7 @@ def load_data():
 
     # 名簿
     rows = svc.spreadsheets().values().get(
-        spreadsheetId=SHEET_ID, range=f"{SHEET_MEIBO}!A:L"
+        spreadsheetId=SHEET_ID, range=f"{SHEET_MEIBO}!A:C"
     ).execute().get("values", [])
     meibo = {}
     today = date.today()
@@ -180,7 +180,7 @@ def load_data():
         name = row[0].strip() if row else ""
         if not name: continue
         birth_str = row[1].strip() if len(row) > 1 else ""
-        org       = row[5].strip() if len(row) > 5 else ""
+        org       = row[2].strip() if len(row) > 2 else ""  # C列（index2）
         age = None
         if birth_str:
             try:
