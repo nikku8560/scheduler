@@ -239,7 +239,7 @@ def write_marks(svc, header, assignments):
     updates    = []
     for slot, person in assignments:
         cell = f"{SHEET_MEET}!{col_letter(col_idx)}{person['row_idx']}"
-        updates.append({"range": cell, "values": [["〇"]]})
+        updates.append({"range": cell, "values": [["○"]]})
     if updates:
         svc.spreadsheets().values().batchUpdate(
             spreadsheetId=SHEET_ID,
