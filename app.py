@@ -661,23 +661,36 @@ def show_reorder():
     assignments = st.session_state.assignments
     meibo       = st.session_state.meibo
 
-    # 表示ラベルを作成（氏名をキーとして埋め込む）
+    # 表示ラベル（氏名 / 所属 / 年齢）
+    def _age_str(name):
+        age = meibo.get(name, {}).get("age")
+        return f"{age}歳" if age else ""
+
     labels = [
-        f"{p['name']}　{meibo.get(p['name'],{}).get('org','')}　{meibo.get(p['name'],{}).get('age','')}歳"
+        f"{p['name']} / {meibo.get(p['name'],{}).get('org','')} / {_age_str(p['name'])}"
         for _, p in assignments
     ]
 
     # ドラッグ&ドロップUI
-    sorted_labels = sort_items(labels, direction="vertical")
+    raw = sort_items(labels, direction="vertical")
+
+    # ボタン押下時に sort_items がリセットされる場合に備えてセッションに保存
+    if raw:
+        st.session_state._reorder_labels = raw
+    sorted_labels = st.session_state.get("_reorder_labels", labels)
 
     # 並べ替え結果をassignmentsに反映
-    slots      = [s for s, _ in assignments]
+    slots          = [s for s, _ in assignments]
     name_to_person = {p["name"]: p for _, p in assignments}
-    new_order  = []
+    new_order      = []
     for lbl in sorted_labels:
-        name = lbl.split("　")[0]
+        name = lbl.split(" / ")[0].strip()
         if name in name_to_person:
             new_order.append(name_to_person[name])
+
+    # フォールバック（名前解析失敗時は元の順序を維持）
+    if len(new_order) != len(assignments):
+        new_order = [p for _, p in assignments]
 
     # プレビュー表示
     st.divider()
@@ -691,10 +704,12 @@ def show_reorder():
     with col1:
         if st.button("✅ この順番で確定", use_container_width=True, type="primary"):
             new_assignments = list(zip(slots, new_order))
+            st.session_state.pop("_reorder_labels", None)
             st.session_state.update(assignments=new_assignments, step="confirm")
             st.rerun()
     with col2:
         if st.button("← 戻る", use_container_width=True):
+            st.session_state.pop("_reorder_labels", None)
             st.session_state.step = "confirm"
             st.rerun()
 
