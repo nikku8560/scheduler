@@ -620,6 +620,18 @@ def show_confirm():
             st.rerun()
 
 
+def _format_schedule_text(assignments, meibo, date_label):
+    """メール用コピーテキストを生成"""
+    lines = [f"【{date_label}　面談スケジュール】", ""]
+    for slot, person in assignments:
+        info    = meibo.get(person["name"], {"org": "", "age": None})
+        age_str = f"{info['age']}歳" if info["age"] else ""
+        org_str = info.get("org", "")
+        detail  = "　".join(filter(None, [org_str, age_str]))
+        lines.append(f"{slot['start']}〜{slot['end']}　{person['name']}（{detail}）")
+    return "\n".join(lines)
+
+
 def _show_schedule_table(assignments, meibo, date_label):
     """スケジュール表を描画（共通）"""
     st.markdown(f"### 📅 {date_label}")
@@ -633,6 +645,10 @@ def _show_schedule_table(assignments, meibo, date_label):
             "年齢":  f"{info['age']}歳" if info["age"] else "－",
         })
     st.dataframe(rows, hide_index=True, use_container_width=True)
+
+    # ── メール用テキスト（コピーボタン付き）──────────────────
+    with st.expander("📋 メール用テキスト（コピーボタン →）"):
+        st.code(_format_schedule_text(assignments, meibo, date_label), language=None)
 
 
 def show_reorder():
