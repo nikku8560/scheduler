@@ -600,11 +600,16 @@ def show_confirm():
     with col1:
         label = "✅ 確定（テスト）" if st.session_state.mode == "test" else "✅ 確定（〇記入）"
         if st.button(label, use_container_width=True, type="primary"):
-            if st.session_state.mode != "test":
+                        if st.session_state.mode != "test":
                 svc = get_service()
-                write_marks(svc, st.session_state.header, assignments)
-                load_data.clear()
+                try:
+                    write_marks(svc, st.session_state.header, assignments)
+                    load_data.clear()
+                except Exception as e:
+                    st.error(f"書き込みエラー：{e}")
+                    st.stop()
             st.session_state.marks_written = True
+
             st.rerun()
     with col2:
         if st.button("🔀 順番入替", use_container_width=True):
