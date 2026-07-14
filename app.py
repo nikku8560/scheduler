@@ -17,7 +17,8 @@ SLOT_MIN    = 25
 BREAK_MIN   = 5
 
 _DIR       = os.path.dirname(os.path.abspath(__file__))
-SA_FILE = os.path.join(_DIR, "service_account.json")
+SECURE_CREDENTIALS_DIR = "/Users/hideki/Documents/claude-work/secure_credentials"
+SA_FILE = os.path.join(SECURE_CREDENTIALS_DIR, "service_account.json")
 
 PREFECTURES = [
     "北海道","青森","岩手","宮城","秋田","山形","福島",
@@ -578,9 +579,13 @@ def show_confirm():
         with col1:
             if st.button("↩️ 取り消し（〇を削除）", use_container_width=True):
                 if st.session_state.mode != "test":
-                    svc = get_service()
-                    clear_marks(svc, st.session_state.header, assignments)
-                    load_data.clear()
+                    try:
+                        svc = get_service()
+                        clear_marks(svc, st.session_state.header, assignments)
+                        load_data.clear()
+                    except Exception as e:
+                        st.error(f"取り消しエラー：{e}")
+                        st.stop()
                 st.success("取り消しました")
                 st.session_state.update(marks_written=False, step="mode")
                 st.rerun()
@@ -600,16 +605,15 @@ def show_confirm():
     with col1:
         label = "✅ 確定（テスト）" if st.session_state.mode == "test" else "✅ 確定（〇記入）"
         if st.button(label, use_container_width=True, type="primary"):
-                        if st.session_state.mode != "test":
-                svc = get_service()
+            if st.session_state.mode != "test":
                 try:
+                    svc = get_service()
                     write_marks(svc, st.session_state.header, assignments)
                     load_data.clear()
                 except Exception as e:
                     st.error(f"書き込みエラー：{e}")
                     st.stop()
             st.session_state.marks_written = True
-
             st.rerun()
     with col2:
         if st.button("🔀 順番入替", use_container_width=True):
@@ -807,11 +811,15 @@ def show_reschedule():
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🗑️ 削除する", use_container_width=True, type="primary"):
-            cell = f"{SHEET_MEET}!{col_letter(target['col_idx'])}{target['row_idx']}"
-            svc.spreadsheets().values().clear(
-                spreadsheetId=SHEET_ID, range=cell
-            ).execute()
-            load_data.clear()
+            try:
+                cell = f"{SHEET_MEET}!{col_letter(target['col_idx'])}{target['row_idx']}"
+                svc.spreadsheets().values().clear(
+                    spreadsheetId=SHEET_ID, range=cell
+                ).execute()
+                load_data.clear()
+            except Exception as e:
+                st.error(f"削除エラー：{e}")
+                st.stop()
             st.success(f"✅ {target['name']}（{target['date']}）の〇を削除しました")
             st.session_state.step = "mode"
             st.rerun()
