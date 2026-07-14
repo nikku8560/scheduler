@@ -307,7 +307,7 @@ def show_mode_select():
 
     col_a, col_b, col_c = st.columns(3)
     with col_a:
-        if st.button("📋 新規スケジュール", use_container_width=True, type="primary"):
+        if st.button("📋 新規スケジュール", width='stretch', type="primary"):
             st.session_state.update(
                 mode="new", step="time",
                 meibo=meibo, header=list(header),
@@ -316,11 +316,11 @@ def show_mode_select():
             )
             st.rerun()
     with col_b:
-        if st.button("🔄 リスケ\n（〇を削除）", use_container_width=True):
+        if st.button("🔄 リスケ\n（〇を削除）", width='stretch'):
             st.session_state.update(mode="reschedule", step="reschedule")
             st.rerun()
     with col_c:
-        if st.button("🧪 テストモード\n（書き込みなし）", use_container_width=True):
+        if st.button("🧪 テストモード\n（書き込みなし）", width='stretch'):
             st.session_state.update(
                 mode="test", step="time",
                 meibo=meibo, header=list(header),
@@ -342,7 +342,7 @@ def show_time_input():
             "委員長の空き時間",
             placeholder="例）6月2日 13:00-15:00　/　6/2 午後1時から3時"
         )
-        submitted = st.form_submit_button("次へ →", use_container_width=True, type="primary")
+        submitted = st.form_submit_button("次へ →", width='stretch', type="primary")
 
     if submitted:
         if not time_input.strip():
@@ -407,12 +407,12 @@ def show_counts_input():
 
     col_back, col_next = st.columns(2)
     with col_back:
-        if st.button("← 戻る", use_container_width=True):
+        if st.button("← 戻る", width='stretch'):
             st.session_state.step = "time"
             st.rerun()
     with col_next:
         disabled = (total == 0 or total > len(slots))
-        if st.button("次へ →", use_container_width=True, type="primary", disabled=disabled):
+        if st.button("次へ →", width='stretch', type="primary", disabled=disabled):
             st.session_state.update(n_pref=n_pref, n_party=n_party, step="slot_filters")
             st.rerun()
 
@@ -463,7 +463,7 @@ def show_slot_filters_input():
                         key=f"sf_age_party_{i}",
                     )
 
-        submitted = st.form_submit_button("次へ →", use_container_width=True, type="primary")
+        submitted = st.form_submit_button("次へ →", width='stretch', type="primary")
 
     if submitted:
         slot_filters = []
@@ -577,7 +577,7 @@ def show_confirm():
         st.divider()
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("↩️ 取り消し（〇を削除）", use_container_width=True):
+            if st.button("↩️ 取り消し（〇を削除）", width='stretch'):
                 if st.session_state.mode != "test":
                     try:
                         svc = get_service()
@@ -590,7 +590,7 @@ def show_confirm():
                 st.session_state.update(marks_written=False, step="mode")
                 st.rerun()
         with col2:
-            if st.button("🏠 トップへ戻る", use_container_width=True, type="primary"):
+            if st.button("🏠 トップへ戻る", width='stretch', type="primary"):
                 load_data.clear()
                 st.session_state.update(step="mode", marks_written=False)
                 st.rerun()
@@ -604,7 +604,7 @@ def show_confirm():
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         label = "✅ 確定（テスト）" if st.session_state.mode == "test" else "✅ 確定（〇記入）"
-        if st.button(label, use_container_width=True, type="primary"):
+        if st.button(label, width='stretch', type="primary"):
             if st.session_state.mode != "test":
                 try:
                     svc = get_service()
@@ -616,15 +616,15 @@ def show_confirm():
             st.session_state.marks_written = True
             st.rerun()
     with col2:
-        if st.button("🔀 順番入替", use_container_width=True):
+        if st.button("🔀 順番入替", width='stretch'):
             st.session_state.step = "reorder"
             st.rerun()
     with col3:
-        if st.button("🔄 人を入替", use_container_width=True):
+        if st.button("🔄 人を入替", width='stretch'):
             st.session_state.step = "swap"
             st.rerun()
     with col4:
-        if st.button("❌ キャンセル", use_container_width=True):
+        if st.button("❌ キャンセル", width='stretch'):
             st.session_state.step = "mode"
             st.rerun()
 
@@ -653,7 +653,7 @@ def _show_schedule_table(assignments, meibo, date_label):
             "所属":  info["org"],
             "年齢":  f"{info['age']}歳" if info["age"] else "－",
         })
-    st.dataframe(rows, hide_index=True, use_container_width=True)
+    st.dataframe(rows, hide_index=True, width='stretch')
 
     # ── メール用テキスト（コピーボタン付き）──────────────────
     with st.expander("📋 メール用テキスト（コピーボタン →）"):
@@ -711,13 +711,13 @@ def show_reorder():
     st.divider()
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("✅ この順番で確定", use_container_width=True, type="primary"):
+        if st.button("✅ この順番で確定", width='stretch', type="primary"):
             new_assignments = list(zip(slots, new_order))
             st.session_state.pop("_reorder_labels", None)
             st.session_state.update(assignments=new_assignments, step="confirm")
             st.rerun()
     with col2:
-        if st.button("← 戻る", use_container_width=True):
+        if st.button("← 戻る", width='stretch'):
             st.session_state.pop("_reorder_labels", None)
             st.session_state.step = "confirm"
             st.rerun()
@@ -756,14 +756,14 @@ def show_swap():
 
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("✅ 入れ替え実行", use_container_width=True, type="primary"):
+            if st.button("✅ 入れ替え実行", width='stretch', type="primary"):
                 slot_out, _ = assignments[out_idx]
                 new_assign  = list(assignments)
                 new_assign[out_idx] = (slot_out, candidates[in_idx])
                 st.session_state.update(assignments=new_assign, step="confirm")
                 st.rerun()
         with col2:
-            if st.button("← 戻る", use_container_width=True):
+            if st.button("← 戻る", width='stretch'):
                 st.session_state.step = "confirm"
                 st.rerun()
 
@@ -810,7 +810,7 @@ def show_reschedule():
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🗑️ 削除する", use_container_width=True, type="primary"):
+        if st.button("🗑️ 削除する", width='stretch', type="primary"):
             try:
                 cell = f"{SHEET_MEET}!{col_letter(target['col_idx'])}{target['row_idx']}"
                 svc.spreadsheets().values().clear(
@@ -824,7 +824,7 @@ def show_reschedule():
             st.session_state.step = "mode"
             st.rerun()
     with col2:
-        if st.button("← キャンセル", use_container_width=True):
+        if st.button("← キャンセル", width='stretch'):
             st.session_state.step = "mode"
             st.rerun()
 
@@ -836,7 +836,7 @@ def check_password():
         return True
     st.title("📅 委員長面談スケジューラー")
     pw = st.text_input("パスワードを入力してください", type="password")
-    if st.button("ログイン", use_container_width=True):
+    if st.button("ログイン", width='stretch'):
         correct = st.secrets["password"]
         if pw == correct:
             st.session_state.authenticated = True
