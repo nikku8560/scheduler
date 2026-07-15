@@ -1,6 +1,10 @@
-﻿streamlit==1.57.0
+streamlit==1.57.0
 google-api-python-client==2.196.0
 google-auth==2.53.0
 google-auth-httplib2==0.4.0
 google-auth-oauthlib==1.4.0
 streamlit-sortables
+pandas==2.2.3
+numpy==1.26.4
+pyarrow==17.0.0
+
